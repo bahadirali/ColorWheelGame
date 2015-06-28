@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.mygdx.IActionResolver.IActionResolver;
@@ -16,26 +17,24 @@ import static java.lang.Math.sqrt;
 
 public class MyGdxGame extends ApplicationAdapter implements ApplicationListener {
 
-	public int count = 0;
 	IActionResolver actionResolver;
 
 	private SpriteBatch batch;
-	private Texture wheelImage;
 	private com.badlogic.gdx.math.Rectangle wheel;
-	private TextureRegion region;
 
 	private final int screenWidth = 800;
 	private final int screenHeight = 480;
 	private final int imageWidth = 366;
 	private final int imageHeight = 366;
 
-	private double centerOfWheelX;
-	private double centerOfWheelY;
-	private double radiusOfWheel;
+	private float centerOfWheelX;
+	private float centerOfWheelY;
+	private float radiusOfWheel;
 
 	private long lastRotationTime;
 	private float rotationAngle;
 
+	private ShapeRenderer shapeRenderer;
 
 	public MyGdxGame(IActionResolver actionResolver){
 		this.actionResolver = actionResolver;
@@ -44,18 +43,18 @@ public class MyGdxGame extends ApplicationAdapter implements ApplicationListener
 	@Override
 	public void create () {
 		batch = new SpriteBatch();
-		wheelImage = new Texture("colour-wheel(366x366).png");
-		region = new TextureRegion(wheelImage);
+		shapeRenderer = new ShapeRenderer();
 
+		//physical wheel(not graphical)
 		wheel = new com.badlogic.gdx.math.Rectangle();
 		wheel.x = screenWidth/2 - imageWidth/2;
 		wheel.y = screenHeight/2 - imageHeight/2;
 		wheel.width = imageWidth;
 		wheel.height = imageHeight;
-
 		centerOfWheelX = wheel.x + imageWidth/2;
 		centerOfWheelY = wheel.y + imageHeight/2;
 		radiusOfWheel = imageHeight/2;
+
 
 		lastRotationTime = TimeUtils.nanoTime();
 		rotationAngle = 0;
@@ -70,19 +69,35 @@ public class MyGdxGame extends ApplicationAdapter implements ApplicationListener
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		batch.begin();
 
-		//rotation progress (by changing angle of image around its center <rotationAngle> )
+		//rotation progress (by adding rotation angle to start degree of every arc)
 		if(TimeUtils.nanoTime() - lastRotationTime > 100000000) {
 			lastRotationTime = TimeUtils.nanoTime();
 			rotationAngle = (rotationAngle + 10) % 360;
 		}
 
-		//code to draw without using region(it doesn't work properly)
-		//batch.draw(wheelImage, wheel.x, wheel.y, imageWidth/2, imageHeight/2,
-		//			imageWidth, imageHeight, 1.f, 1.f, rotationAngle, (int) wheel.x, (int) wheel.y, (int) imageWidth, (int) imageHeight, false, false);
+		float soc[] = new float[]{0,60,120,180,240,300};//start(degree)OfColor(arcs)
+		for(int i=0; i<soc.length; i++){
+			soc[i] -= rotationAngle;
+			soc[i] = soc[i] % 360;
+		}
 
-		//draw wheel according to rotation angle
-		batch.draw(region, wheel.x, wheel.y, imageWidth/2, imageHeight/2,
-					imageWidth, imageHeight, 1.f, 1.f, -rotationAngle);
+		//I use arcs to make a circle
+		//6 arcs with 60 degrees make a circle
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+		shapeRenderer.setColor(1, 0.5f, 0, 1);//orange
+		shapeRenderer.arc(centerOfWheelX, centerOfWheelY, radiusOfWheel, soc[0], 60);
+		shapeRenderer.setColor(1, 1, 0, 1);//yellow
+		shapeRenderer.arc(centerOfWheelX, centerOfWheelY, radiusOfWheel, soc[1], 60);
+		shapeRenderer.setColor(0, 1, 0, 1);//green
+		shapeRenderer.arc(centerOfWheelX, centerOfWheelY, radiusOfWheel, soc[2], 60);
+		shapeRenderer.setColor(0, 0, 1, 1);//blue
+		shapeRenderer.arc(centerOfWheelX, centerOfWheelY, radiusOfWheel, soc[3], 60);
+		shapeRenderer.setColor(0.5f, 0, 0.5f, 1);//purple
+		shapeRenderer.arc(centerOfWheelX, centerOfWheelY, radiusOfWheel, soc[4], 60);
+		shapeRenderer.setColor(1, 0, 0, 1);//red
+		shapeRenderer.arc(centerOfWheelX, centerOfWheelY, radiusOfWheel, soc[5], 60);
+		shapeRenderer.end();
+
 
 		// process user input
 		//Used justTouched instead of isTouched since isTouched returns true
@@ -97,7 +112,6 @@ public class MyGdxGame extends ApplicationAdapter implements ApplicationListener
 				actionResolver.showShortToast("Disari");
 			}
 		}
-
 
 		batch.end();
 
@@ -139,7 +153,6 @@ public class MyGdxGame extends ApplicationAdapter implements ApplicationListener
 
 
 	public void dispose(){
-		wheelImage.dispose();
 		batch.dispose();
 	}
 }
